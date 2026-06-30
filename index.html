@@ -96,7 +96,7 @@
                     const shopCategory = shop.category ? shop.category.trim() : '';
 
                     // ถ้าระบุให้แสดง 'all' หรือหมวดหมู่ตรงกับที่เลือก ให้สร้างหมุด
-                    if (selectedCategory === 'all' || shopCategory === selectedCategory) {
+                   if (selectedCategory === 'all' || shopCategory.includes(selectedCategory)) {
                         if(!isNaN(lat) && !isNaN(lng)) {
                             const marker = L.marker([lat, lng]);
                             
