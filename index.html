@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ระบบแผนที่ร้านค้าชุมชน (MVP)</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css"
+    />
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: sans-serif;
+      }
+      #map {
+        width: 100%;
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <script>
+      // ใช้ลิงก์แชร์สาธารณะผ่าน API เพื่อแก้ปัญหาโดนบล็อก (CORS)
+      const googleSheetCsvUrl =
+        "https://docs.google.com/spreadsheets/d/1Uhf4wY7AWn-ChRfTM198pwNZX94Vw-Pflergp8OnB4g/gviz/tq?tqx=out:csv";
+
+      // ตั้งจุดโฟกัสเริ่มต้น
+      const map = L.map("map").setView([13.7992, 99.9491], 11);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap contributors",
+      }).addTo(map);
+
+      const markers = L.markerClusterGroup();
+
+      Papa.parse(googleSheetCsvUrl, {
+        download: true,
+        header: true,
+        complete: function (results) {
+          const shops = results.data;
+          console.log("ดึงข้อมูลสำเร็จ:", shops);
+
+          let count = 0;
+          shops.forEach((shop) => {
+            if (shop.lat && shop.lng) {
+              const lat = parseFloat(shop.lat.trim());
+              const lng = parseFloat(shop.lng.trim());
+
+              if (!isNaN(lat) && !isNaN(lng)) {
+                const marker = L.marker([lat, lng]);
+
+                // แก้ไขระบบลิงก์ปุ่มนำทางให้สมบูรณ์
+                const popupContent = `
+                                <div style="min-width: 200px;">
+                                    <span style="font-size: 11px; color: #888;">ย่าน: ${shop.district || "-"}</span>
+                                    <h3 style="margin: 5px 0; color: #1877f2;">${shop.name || "ไม่มีชื่อร้าน"}</h3>
+                                    <p style="margin: 0 0 10px 0; font-size: 13px; color: #444;">${shop.description || ""}</p>
+                                    <div style="display: flex; gap: 5px;">
+                                        <a href="${shop.facebook_link || "#"}" target="_blank" style="flex: 1; text-align: center; background: #1877f2; color: white; padding: 6px; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: bold;">🌐 ดูโพสต์</a>
+                                        <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" style="flex: 1; text-align: center; background: #34a853; color: white; padding: 6px; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: bold;">🚗 นำทาง</a>
+                                    </div>
+                                </div>
+                            `;
+
+                marker.bindPopup(popupContent);
+                markers.addLayer(marker);
+                count++;
+              }
+            }
+          });
+
+          if (count > 0) {
+            map.addLayer(markers);
+            map.fitBounds(markers.getBounds());
+          } else {
+            alert(
+              "ดึงไฟล์ได้สำเร็จ! แต่ไม่พบพิกัดในตาราง กรุณาเช็กว่าชื่อหัวตารางแถวแรกสะกดว่า lat และ lng (ตัวพิมพ์เล็ก) หรือยังครับ",
+            );
+          }
+        },
+        error: function (err) {
+          alert(
+            "โหลดข้อมูลจาก Google Sheets ไม่สำเร็จ กรุณาเปิดเว็บผ่านระบบโฮสติ้ง หรือเช็กอินเทอร์เน็ต",
+          );
+        },
+      });
+    </script>
+  </body>
+</html>
